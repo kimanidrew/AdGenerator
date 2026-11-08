@@ -6,6 +6,7 @@ from app.config import settings
 from app.database import engine
 from app.routes.auth import router as auth_router
 from app.routes.scripts import router as scripts_router
+from app.routes.storyboards import router as storyboards_router
 
 app = FastAPI(title="KenyaAds AI API", version="0.2.0")
 app.add_middleware(
@@ -17,6 +18,7 @@ app.add_middleware(
 )
 app.include_router(auth_router)
 app.include_router(scripts_router)
+app.include_router(storyboards_router)
 
 
 @app.get("/health/live", tags=["health"])

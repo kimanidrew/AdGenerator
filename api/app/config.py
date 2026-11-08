@@ -21,6 +21,12 @@ class Settings(BaseSettings):
     script_llm_api_key: str | None = None
     script_llm_timeout_seconds: int = 55
 
+    # Hosted OpenAI-compatible image generation gateway; inference stays off this server.
+    image_generation_base_url: str | None = None
+    image_generation_model: str = "stabilityai/sdxl-turbo"
+    image_generation_api_key: str | None = None
+    image_generation_timeout_seconds: int = 180
+
     # Cloudflare R2 uses its account-specific S3 API endpoint, never the public r2.dev URL.
     storage_provider: str = "cloudflare_r2"
     r2_account_id: str | None = None

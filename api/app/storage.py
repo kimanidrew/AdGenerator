@@ -63,6 +63,15 @@ def create_upload_url(
     )
 
 
+def upload_bytes(object_key: str, content: bytes, content_type: str) -> None:
+    """Upload generated media to the private R2 bucket."""
+    if not object_key or not content or not content_type:
+        raise ValueError("object_key, content and content_type are required")
+    get_storage_client().put_object(
+        Bucket=settings.storage_bucket, Key=object_key, Body=content, ContentType=content_type
+    )
+
+
 def create_download_url(object_key: str, expires_in: int = 900) -> str:
     """Create a short-lived URL for downloading one object from the private bucket."""
     if not object_key:

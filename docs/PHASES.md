@@ -1,7 +1,7 @@
 # Delivery phases
 - [x] Phase 1 — foundation, authentication, consent capture, PostgreSQL, Redis/Celery and deployment scaffolding.
 - [x] Phase 2 — authenticated script generation endpoint, validated scene JSON, English/Kiswahili/Sheng options and editable script studio.
-- [ ] Phase 3 — storyboard generation.
+- [x] Phase 3 — authenticated scene-by-scene storyboard generation through a configurable hosted image gateway, private R2 storage and signed previews.
 - [ ] Phase 4 — voiceover, FFmpeg assembly and end-to-end MVP.
 - [ ] Phase 5 — queue progress, SSE, history, scene regeneration and feedback.
 - [ ] Phase 6 — moderation, watermark, brand safety and admin tools.
