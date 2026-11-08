@@ -2,13 +2,30 @@
 
 ## Production topology
 
-- **Frontend:** Next.js App Router deployed to Vercel.
-- **Backend API:** FastAPI deployed as a separate always-on web service. Render is the proposed first provider; confirm the provider before deployment.
+- **Vercel project:** One repository deployment with two Vercel Services.
+- **Web service:** Next.js App Router, rooted at `web/`, publicly routed at `/`.
+- **API service:** FastAPI, rooted at `api/`, entrypoint `app.main:app`, publicly routed at `/api` and `/api/*`.
+- **Service bindings:** None currently. Browser API calls use same-origin relative `/api/...` URLs; there are no confirmed server-to-server service calls.
+- **Background worker and scheduler:** External deployment, not Vercel HTTP services. They consume the managed Redis queue and use the same database configuration.
 - **Database:** Neon managed PostgreSQL. Use a pooled connection string for application traffic and a direct connection string for Alembic migrations where required.
-- **Queue:** Redis-compatible managed service for background job coordination.
+- **Queue:** Redis-compatible managed service.
 - **Media and artifact storage:** Cloudflare R2 using its S3-compatible API. Store generated images, audio, video, user uploads, training datasets and downloadable assets in a private R2 bucket. Do not store large media files in PostgreSQL or on an ephemeral application filesystem.
 - **GPU compute:** Kaggle notebooks initially, subject to Kaggle session availability and quotas. Kaggle is not an always-on inference server.
 - **Model and adapter storage:** Private Hugging Face repositories and/or R2, with immutable revisions and recorded checksums.
+
+## Vercel Services routing
+
+The root `vercel.json` defines `api` and `web` as separate services. Public rewrites are ordered from most specific to least specific:
+
+1. `/api` → `api`
+2. `/api/*` → `api`
+3. `/*` → `web`
+
+The rewrites preserve the incoming path. FastAPI therefore continues to receive `/api/auth/signup` and `/api/auth/login`, matching the existing router prefix. The API service does not currently expose its health endpoints publicly through these rewrites.
+
+The frontend authentication form uses relative `/api/auth/...` URLs by default. For split local development only, `web/.env.local` may set `NEXT_PUBLIC_API_URL=http://localhost:8000`. Do not set that variable in the Vercel production environment. Same-origin browser requests do not require CORS; retain the configured CORS origins only for separate local or external clients.
+
+Vercel Services are currently a beta feature. Run `vercel dev` from the repository root with a current Vercel CLI to test the services together.
 
 ## Cloudflare R2 configuration
 
@@ -28,7 +45,7 @@ The storage helper is infrastructure plumbing; upload routes, ownership checks, 
 
 1. The Vercel frontend sends an authenticated request to the FastAPI API.
 2. The API validates the request, writes the ad/job record to Neon and enqueues work.
-3. A job coordinator dispatches work to an available Kaggle notebook run. Notebook runs poll or receive a bounded batch of jobs; they must not attempt to keep a Kaggle session alive indefinitely.
+3. An external job coordinator/worker dispatches work to an available Kaggle notebook run. Notebook runs poll or receive a bounded batch of jobs; they must not attempt to keep a Kaggle session alive indefinitely.
 4. The notebook loads the selected model and adapter revisions, performs inference on the Kaggle GPU, and writes artifacts to private Cloudflare R2 storage.
 5. The notebook reports progress and completion to an authenticated backend callback or job-result endpoint.
 6. The API updates Neon; the frontend reads status through polling or SSE and receives short-lived media URLs from the API.

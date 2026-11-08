@@ -4,8 +4,8 @@ A platform for creating short-form adverts with Kenyan language, settings and cu
 
 ## Stack
 
-- **Web:** Next.js App Router, TypeScript, Tailwind CSS (deploy to Vercel)
-- **API:** Python 3.11, FastAPI, Pydantic, SQLAlchemy, Alembic
+- **Web:** Next.js App Router, TypeScript, Tailwind CSS (Vercel Services)
+- **API:** Python 3.12, FastAPI, Pydantic, SQLAlchemy, Alembic (Vercel Services)
 - **Auth:** JWT + Argon2 password hashing
 - **Database:** Neon PostgreSQL
 - **Object storage:** Cloudflare R2 (S3-compatible API)
@@ -13,11 +13,26 @@ A platform for creating short-form adverts with Kenyan language, settings and cu
 - **GPU compute:** Kaggle notebooks initially; no local GPU required
 - **Training/model artifacts:** Private Hugging Face repositories and/or R2
 
+## Vercel deployment (web + API)
+
+The repository root contains `vercel.json`, which configures two services in one Vercel project:
+
+- `web`: Next.js, publicly routed at `/`.
+- `api`: FastAPI, publicly routed at `/api` and `/api/*`.
+
+The API entrypoint is `app.main:app` relative to the `api/` service root. The API already defines its authentication routes under `/api/auth`, so the public rewrite preserves the prefix. No service binding is needed: browser requests use the shared deployment origin and call relative `/api/...` URLs.
+
+**Vercel environment variables:** configure the backend secrets on the `api` service only: `DATABASE_URL`, `MIGRATION_DATABASE_URL` (when running migrations), `JWT_SECRET`, `REDIS_URL`, `R2_ACCOUNT_ID` or `STORAGE_ENDPOINT`, `STORAGE_BUCKET`, `STORAGE_ACCESS_KEY`, `STORAGE_SECRET_KEY`, and `CORS_ORIGINS` if needed. Do not set `NEXT_PUBLIC_API_URL` in production; the browser uses same-origin `/api` requests. Never expose backend secrets through `NEXT_PUBLIC_` variables.
+
+The Celery worker and scheduler are not Vercel HTTP services. They remain external background processes and must use the same managed Redis and database configuration. Kaggle remains asynchronous, temporary GPU compute rather than an always-on API host.
+
+Vercel Services are currently a beta feature. Deploy from the repository root, where `vercel.json` and both service directories are located. Use a current Vercel CLI for local multi-service testing with `vercel dev`.
+
 ## Local development (Windows 11)
 
 Docker is optional. See [docs/WINDOWS_SETUP.md](docs/WINDOWS_SETUP.md) for direct Windows setup instructions.
 
-1. Install Git, Node.js LTS and Python 3.11.
+1. Install Git, Node.js LTS and Python 3.12.
 2. Clone the repository.
 3. Configure `api/.env` from the root `.env.example`; create `web/.env.local` with only `NEXT_PUBLIC_API_URL=http://localhost:8000`.
 4. Run the web app and API in separate PowerShell windows.

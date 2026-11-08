@@ -11,7 +11,10 @@ export default function AuthForm({ mode }: Props) {
     event.preventDefault(); setError(""); setBusy(true);
     try {
       const endpoint = mode === "signup" ? "signup" : "login";
-      const response = await fetch((process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000") + "/api/auth/" + endpoint, {
+      // In production, Vercel routes /api/* to FastAPI on the same origin.
+      // Set NEXT_PUBLIC_API_URL only for split local development.
+      const apiBase = (process.env.NEXT_PUBLIC_API_URL || "").replace(/\/$/, "");
+      const response = await fetch(`${apiBase}/api/auth/${endpoint}`, {
         method: "POST", headers: {"Content-Type": "application/json"},
         body: JSON.stringify(mode === "signup" ? {email, password, allow_ai_training: consent} : {email, password}),
       });
