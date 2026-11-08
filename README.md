@@ -64,3 +64,14 @@ The frontend runs at http://localhost:3000 and API docs at http://localhost:8000
 Training consent is optional and defaults off. Only rights-cleared, explicitly consented content may be considered for training. Never commit `.env`, credentials, private media or datasets. Do not generate deceptive endorsements or unverified product claims.
 
 Kaggle GPU sessions are temporary and quota-limited. Generation jobs must be asynchronous and may wait for available capacity; Kaggle is not an always-on inference endpoint.
+
+
+## Phase 3 storyboard worker
+
+Storyboard requests are queued by the Vercel API and processed by the external Celery worker. Run it from the `api` directory:
+
+```bash
+celery -A app.worker.celery_app.celery_app worker --loglevel=INFO
+```
+
+Configure `IMAGE_GENERATION_BASE_URL`, `IMAGE_GENERATION_MODEL`, and optional `IMAGE_GENERATION_API_KEY` for an HTTPS OpenAI-compatible image endpoint that returns PNG data in `data[0].b64_json`. The worker also needs the same `REDIS_URL` and R2 credentials. GPU inference stays on the hosted GPU provider, not on the user's computer or Vercel. The worker and image provider must be running before storyboard jobs can complete.

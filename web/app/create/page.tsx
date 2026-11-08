@@ -40,6 +40,7 @@ export default function CreatePage() {
   const [mode, setMode] = useState("");
   const [storyboard, setStoryboard] = useState<StoryboardImage[]>([]);
   const [storyboardBusy, setStoryboardBusy] = useState(false);
+  const [storyboardStatus, setStoryboardStatus] = useState("");
   const [storyboardError, setStoryboardError] = useState("");
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
@@ -86,20 +87,38 @@ export default function CreatePage() {
     if (!script) return;
     setStoryboardBusy(true);
     setStoryboardError("");
+    setStoryboardStatus("Submitting storyboard job…");
     setStoryboard([]);
     try {
       const token = sessionStorage.getItem("kenyaads_access_token");
-      const apiBase = (process.env.NEXT_PUBLIC_API_URL || "").replace(/\\/$/, "");
+      const apiBase = (process.env.NEXT_PUBLIC_API_URL || "").replace(/\/$/, "");
+      const headers = { "Content-Type": "application/json", Authorization: `Bearer ${token}` };
       const response = await fetch(`${apiBase}/api/storyboards/generate`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-        body: JSON.stringify({ script }),
+        method: "POST", headers, body: JSON.stringify({ script }),
       });
       const data = await response.json();
-      if (!response.ok) throw new Error(typeof data.detail === "string" ? data.detail : "Could not generate storyboard images.");
-      setStoryboard(data.images || []);
+      if (!response.ok) throw new Error(typeof data.detail === "string" ? data.detail : "Could not start storyboard generation.");
+      const jobId = data.job_id as string;
+      for (let attempt = 0; attempt < 180; attempt += 1) {
+        await new Promise(resolve => setTimeout(resolve, 2000));
+        const statusResponse = await fetch(`${apiBase}/api/storyboards/jobs/${jobId}`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        const statusData = await statusResponse.json();
+        if (!statusResponse.ok) throw new Error(typeof statusData.detail === "string" ? statusData.detail : "Could not check storyboard progress.");
+        if (statusData.status === "completed") {
+          setStoryboard(statusData.images || []);
+          setStoryboardStatus("");
+          return;
+        }
+        setStoryboardStatus(statusData.status === "processing"
+          ? `Generating scene images… ${statusData.completed_scenes || 0}/${statusData.total_scenes || script.scenes.length}`
+          : "Waiting for the image worker…");
+      }
+      throw new Error("Storyboard generation is taking longer than expected. Your job may still be running; please try again shortly.");
     } catch (err) {
       setStoryboardError(err instanceof Error ? err.message : "Unable to generate storyboard. Please try again.");
+      setStoryboardStatus("");
     } finally {
       setStoryboardBusy(false);
     }
@@ -124,7 +143,7 @@ export default function CreatePage() {
           <a href="/" className="text-sm text-slate-400 transition hover:text-white">Back to home</a>
         </header>
         <div className="mb-8 max-w-2xl">
-          <p className="text-xs font-bold uppercase tracking-[.22em] text-emerald-300">Phase 2 · Script studio</p>
+          <p className="text-xs font-bold uppercase tracking-[.22em] text-emerald-300">Script + storyboard studio</p>
           <h1 className="mt-3 text-4xl font-black tracking-tight md:text-5xl">Turn your idea into a script.</h1>
           <p className="mt-4 leading-7 text-slate-400">Describe what you are advertising. KenyaAds AI will organise it into scenes with visuals, voiceover and on-screen text you can edit.</p>
         </div>
@@ -146,7 +165,7 @@ export default function CreatePage() {
             <label className={`${labelClass} mt-5`}>Target audience<input value={audience} onChange={e => setAudience(e.target.value)} maxLength={160} className={inputClass}/></label>
             {error && <p role="alert" className="mt-5 rounded-xl border border-red-400/20 bg-red-400/10 p-3 text-sm text-red-300">{error}</p>}
             <button disabled={busy} className="mt-7 w-full rounded-xl bg-emerald-400 px-5 py-4 font-bold text-slate-950 transition hover:bg-emerald-300 disabled:cursor-wait disabled:opacity-60">{busy ? "Writing your script…" : "Generate script →"}</button>
-            <p className="mt-3 text-center text-xs leading-5 text-slate-500">You can edit every scene after generation. Video and image generation come in later phases.</p>
+            <p className="mt-3 text-center text-xs leading-5 text-slate-500">Edit your scenes, then generate a visual storyboard for each scene.</p>
           </form>
 
           <section className="min-w-0 rounded-3xl border border-white/10 bg-white/[.025] p-6 md:p-7">
@@ -182,6 +201,7 @@ export default function CreatePage() {
                   <button type="button" onClick={()=>navigator.clipboard.writeText(JSON.stringify(script,null,2))} className="rounded-xl border border-white/15 px-4 py-3 text-sm font-semibold hover:bg-white/5">Copy script JSON</button>
                   <button type="button" onClick={()=>navigator.clipboard.writeText(script.scenes.map(s=>s.voiceover).join("\n\n"))} className="rounded-xl border border-white/15 px-4 py-3 text-sm font-semibold hover:bg-white/5">Copy voiceover</button>
                 </div>
+                {storyboardStatus && <p className="rounded-xl border border-emerald-300/20 bg-emerald-300/10 p-3 text-sm text-emerald-200">{storyboardStatus}</p>}
                 {storyboardError && <p role="alert" className="rounded-xl border border-red-400/20 bg-red-400/10 p-3 text-sm text-red-300">{storyboardError}</p>}
                 {storyboard.length > 0 && <section className="space-y-4 pt-4"><div><p className="text-xs font-bold uppercase tracking-[.2em] text-emerald-300">Phase 3 · Storyboard</p><h3 className="mt-2 text-xl font-bold">Your scene visuals</h3><p className="mt-1 text-sm text-slate-400">Images are stored privately. Preview links expire after 15 minutes.</p></div><div className="grid gap-4 sm:grid-cols-2">{storyboard.map(item => <article key={item.scene_number} className="overflow-hidden rounded-2xl border border-white/10 bg-slate-950/60"><img src={item.image_url} alt={`Storyboard scene ${item.scene_number}`} className="aspect-[9/16] w-full object-cover" /><div className="p-3"><p className="font-semibold">Scene {item.scene_number}</p><p className="mt-1 text-xs leading-5 text-slate-400">{item.prompt}</p></div></article>)}</div></section>}
                 <p className="text-xs leading-5 text-slate-500">This editable draft is held in this browser session. Saving to your account and generation history will be added in Phase 5.</p>
