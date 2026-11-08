@@ -147,10 +147,10 @@ export default function CreatePage() {
                 ))}
                 <label className={labelClass}>Social caption<textarea rows={3} value={script.caption} onChange={e=>setScript({...script,caption:e.target.value})} className={`${inputClass} resize-y`}/></label>
                 <label className={`${labelClass} mt-4`}>Call to action<input value={script.call_to_action} onChange={e=>setScript({...script,call_to_action:e.target.value})} className={inputClass}/></label>
-                <label className={`${labelClass} mt-4`}>Hashtags<input value={script.hashtags.join(" ")} onChange={e=>setScript({...script,hashtags:e.target.value.split(/\\s+/).filter(Boolean)})} className={inputClass}/></label>
+                <label className={`${labelClass} mt-4`}>Hashtags<input value={script.hashtags.join(" ")} onChange={e=>setScript({...script,hashtags:e.target.value.split(/\s+/).filter(Boolean)})} className={inputClass}/></label>
                 <div className="flex flex-wrap gap-3 pt-2">
                   <button type="button" onClick={()=>navigator.clipboard.writeText(JSON.stringify(script,null,2))} className="rounded-xl border border-white/15 px-4 py-3 text-sm font-semibold hover:bg-white/5">Copy script JSON</button>
-                  <button type="button" onClick={()=>navigator.clipboard.writeText(script.scenes.map(s=>s.voiceover).join("\\n\\n"))} className="rounded-xl border border-white/15 px-4 py-3 text-sm font-semibold hover:bg-white/5">Copy voiceover</button>
+                  <button type="button" onClick={()=>navigator.clipboard.writeText(script.scenes.map(s=>s.voiceover).join("\n\n"))} className="rounded-xl border border-white/15 px-4 py-3 text-sm font-semibold hover:bg-white/5">Copy voiceover</button>
                 </div>
                 <p className="text-xs leading-5 text-slate-500">This editable draft is held in this browser session. Saving to your account and generation history will be added in Phase 5.</p>
               </div>
