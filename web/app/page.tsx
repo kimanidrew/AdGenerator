@@ -1,2 +1,27 @@
 const ideas = ["A soda launch in a Nairobi matatu", "A salon offer in natural Sheng", "A restaurant lunch special in Swahili"];
-export default function HomePage() { return <main className="min-h-screen overflow-hidden"><nav className="mx-auto flex max-w-6xl items-center justify-between px-6 py-6"><div className="text-xl font-black tracking-tight">KENYA<span className="text-emerald-400">ADS</span> AI</div><div className="flex items-center gap-5 text-sm text-slate-300"><a href="/login">Log in</a><a className="rounded-full bg-emerald-400 px-5 py-2.5 font-bold text-slate-950" href="/signup">Get started</a></div></nav><section className="mx-auto grid max-w-6xl gap-12 px-6 pb-24 pt-20 md:grid-cols-[1.1fr_.9fr] md:items-center"><div><p className="mb-5 inline-flex rounded-full border border-emerald-400/30 bg-emerald-400/10 px-4 py-2 text-xs font-semibold uppercase tracking-[.2em] text-emerald-300">Made for the Kenyan market</p><h1 className="max-w-2xl text-5xl font-black leading-[1.05] tracking-tight md:text-7xl">Your next great ad starts with <span className="text-emerald-400">a prompt.</span></h1><p className="mt-7 max-w-xl text-lg leading-8 text-slate-300">Turn a simple idea into a short-form advert shaped around Kenyan language, places and everyday culture.</p><a href="/signup" className="mt-9 inline-flex rounded-full bg-emerald-400 px-7 py-4 font-bold text-slate-950">Start creating →</a><p className="mt-4 text-xs text-slate-500">Open models. Your content. Your control.</p></div><div className="rounded-3xl border border-white/10 bg-white/[.04] p-6"><div className="flex items-center justify-between"><span className="text-sm font-semibold">AD CONCEPT PREVIEW</span><span className="rounded-full bg-amber-300/10 px-3 py-1 text-xs text-amber-200">Coming soon</span></div><div className="mt-5 flex aspect-[9/13] flex-col justify-between rounded-2xl bg-gradient-to-br from-emerald-950 via-slate-900 to-slate-950 p-7"><div><div className="text-xs font-bold tracking-[.25em] text-emerald-300">NAIROBI • KENYA</div><div className="mt-4 text-4xl font-black leading-tight">MAKE<br/>IT<br/><span className="text-emerald-300">HAPPEN.</span></div></div><div><div className="mb-3 h-1 w-16 rounded bg-emerald-400"/><p className="text-sm text-slate-300">Your story. Your style. Your audience.</p></div></div><div className="mt-5 space-y-3">{ideas.map(idea => <div key={idea} className="rounded-xl border border-white/10 px-4 py-3 text-sm text-slate-300">✦ {idea}</div>)}</div></div></section><footer className="border-t border-white/10 px-6 py-6 text-center text-xs text-slate-500">KenyaAds AI · Built for creators and businesses across Kenya</footer></main>; }
+export default function HomePage() {
+  return <main className="min-h-screen overflow-hidden">
+    <nav className="mx-auto flex max-w-6xl items-center justify-between px-6 py-6">
+      <div className="text-xl font-black tracking-tight">KENYA<span className="text-emerald-400">ADS</span> AI</div>
+      <div className="flex items-center gap-5 text-sm text-slate-300"><a href="/login">Log in</a><a className="rounded-full bg-emerald-400 px-5 py-2.5 font-bold text-slate-950" href="/signup">Get started</a></div>
+    </nav>
+    <section className="mx-auto grid max-w-6xl gap-12 px-6 pb-24 pt-20 md:grid-cols-[1.1fr_.9fr] md:items-center">
+      <div>
+        <p className="mb-5 inline-flex rounded-full border border-emerald-400/30 bg-emerald-400/10 px-4 py-2 text-xs font-semibold uppercase tracking-[.2em] text-emerald-300">Made for the Kenyan market</p>
+        <h1 className="max-w-2xl text-5xl font-black leading-[1.05] tracking-tight md:text-7xl">Your next great ad starts with <span className="text-emerald-400">a prompt.</span></h1>
+        <p className="mt-7 max-w-xl text-lg leading-8 text-slate-300">Turn a simple idea into a short-form advert shaped around Kenyan language, places and everyday culture.</p>
+        <a href="/create" className="mt-9 inline-flex rounded-full bg-emerald-400 px-7 py-4 font-bold text-slate-950">Create your first script →</a>
+        <p className="mt-4 text-xs text-slate-500">English · Kiswahili · Sheng</p>
+      </div>
+      <div className="rounded-3xl border border-white/10 bg-white/[.04] p-6">
+        <div className="flex items-center justify-between"><span className="text-sm font-semibold">AD CONCEPT PREVIEW</span><span className="rounded-full bg-emerald-300/10 px-3 py-1 text-xs text-emerald-200">Script studio live</span></div>
+        <div className="mt-5 flex aspect-[9/13] flex-col justify-between rounded-2xl bg-gradient-to-br from-emerald-950 via-slate-900 to-slate-950 p-7">
+          <div><div className="text-xs font-bold tracking-[.25em] text-emerald-300">NAIROBI • KENYA</div><div className="mt-4 text-4xl font-black leading-tight">MAKE<br/>IT<br/><span className="text-emerald-300">HAPPEN.</span></div></div>
+          <div><div className="mb-3 h-1 w-16 rounded bg-emerald-400"/><p className="text-sm text-slate-300">Your story. Your style. Your audience.</p></div>
+        </div>
+        <div className="mt-5 space-y-3">{ideas.map(idea => <div key={idea} className="rounded-xl border border-white/10 px-4 py-3 text-sm text-slate-300">✦ {idea}</div>)}</div>
+      </div>
+    </section>
+    <footer className="border-t border-white/10 px-6 py-6 text-center text-xs text-slate-500">KenyaAds AI · Built for creators and businesses across Kenya</footer>
+  </main>;
+}
