@@ -18,8 +18,10 @@ def get_storage_client():
             f"Unsupported storage provider: {settings.storage_provider}"
         )
 
+    endpoint = settings.effective_storage_endpoint
     required = {
-        "STORAGE_ENDPOINT": settings.storage_endpoint,
+        "R2 S3 API endpoint (STORAGE_ENDPOINT or R2_ACCOUNT_ID)": endpoint,
+        "STORAGE_BUCKET": settings.storage_bucket,
         "STORAGE_ACCESS_KEY": settings.storage_access_key,
         "STORAGE_SECRET_KEY": settings.storage_secret_key,
     }
@@ -31,11 +33,14 @@ def get_storage_client():
 
     return boto3.client(
         "s3",
-        endpoint_url=settings.storage_endpoint,
+        endpoint_url=endpoint,
         region_name=settings.storage_region or "auto",
         aws_access_key_id=settings.storage_access_key,
         aws_secret_access_key=settings.storage_secret_key,
-        config=Config(signature_version="s3v4"),
+        config=Config(
+            signature_version="s3v4",
+            s3={"addressing_style": "path"},
+        ),
     )
 
 
