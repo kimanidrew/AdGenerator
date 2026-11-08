@@ -5,60 +5,47 @@
 - **Vercel project:** One repository deployment with two Vercel Services.
 - **Web service:** Next.js App Router, rooted at `web/`, publicly routed at `/`.
 - **API service:** FastAPI, rooted at `api/`, entrypoint `app.main:app`, publicly routed at `/api` and `/api/*`.
-- **Service bindings:** None currently. Browser API calls use same-origin relative `/api/...` URLs; there are no confirmed server-to-server service calls.
+- **Service bindings:** None currently. Browser API calls use same-origin relative `/api/...` URLs.
 - **Background worker and scheduler:** External deployment, not Vercel HTTP services. They consume the managed Redis queue and use the same database configuration.
 - **Database:** Neon managed PostgreSQL. Use a pooled connection string for application traffic and a direct connection string for Alembic migrations where required.
 - **Queue:** Redis-compatible managed service.
-- **Media and artifact storage:** Cloudflare R2 using its S3-compatible API. Store generated images, audio, video, user uploads, training datasets and downloadable assets in a private R2 bucket. Do not store large media files in PostgreSQL or on an ephemeral application filesystem.
+- **Media and artifact storage:** Cloudflare R2 using its S3-compatible API. Store generated images, audio, video, user uploads, training datasets and downloadable assets in a private R2 bucket.
 - **GPU compute:** Kaggle notebooks initially, subject to Kaggle session availability and quotas. Kaggle is not an always-on inference server.
 - **Model and adapter storage:** Private Hugging Face repositories and/or R2, with immutable revisions and recorded checksums.
+
+## Phase 2 — script generation
+
+The authenticated API endpoint `POST /api/scripts/generate` accepts an advert brief and options for product, industry, audience, language, duration, platform and tone. It returns a Pydantic-validated JSON script with ordered scenes, per-scene timing, visual direction, voiceover, on-screen text, caption, hashtags and a call to action. Scene durations must add up exactly to the requested runtime.
+
+The provider boundary lives in `api/app/services/script_generator.py`:
+- With `SCRIPT_LLM_BASE_URL` configured, the API calls a self-hosted OpenAI-compatible chat-completions endpoint and validates the returned JSON.
+- Without it, the API returns a deterministic starter template and explicitly labels the result `starter_template`; it does not pretend a model generated it.
+- Model ID, endpoint and optional API key are configuration, not frontend concerns. Keep secrets on the API service only.
+
+The Next.js `/create` studio requires a logged-in user, submits the brief, and lets the user edit each scene, title, caption, hashtags and call to action. Phase 2 drafts are held in browser memory only; persistent projects, history, background job progress and Kaggle job dispatch are later phase work.
 
 ## Vercel Services routing
 
 The root `vercel.json` defines `api` and `web` as separate services. Public rewrites are ordered from most specific to least specific:
-
 1. `/api` → `api`
 2. `/api/*` → `api`
 3. `/*` → `web`
 
-The rewrites preserve the incoming path. FastAPI therefore continues to receive `/api/auth/signup` and `/api/auth/login`, matching the existing router prefix. The API service does not currently expose its health endpoints publicly through these rewrites.
+The rewrites preserve the incoming path. FastAPI therefore receives `/api/auth/signup` and `/api/scripts/generate`, matching the router prefixes. The API service does not currently expose its health endpoints publicly through these rewrites.
 
-The frontend authentication form uses relative `/api/auth/...` URLs by default. For split local development only, `web/.env.local` may set `NEXT_PUBLIC_API_URL=http://localhost:8000`. Do not set that variable in the Vercel production environment. Same-origin browser requests do not require CORS; retain the configured CORS origins only for separate local or external clients.
-
-Vercel Services are currently a beta feature. Run `vercel dev` from the repository root with a current Vercel CLI to test the services together.
+The frontend uses relative `/api/...` URLs by default. For split local development only, `web/.env.local` may set `NEXT_PUBLIC_API_URL=http://localhost:8000`. Do not set that variable in Vercel production.
 
 ## Cloudflare R2 configuration
 
-Create a private R2 bucket (initial name: `kenyaads-media`) and an R2 API token scoped to that bucket with Object Read & Write permissions. Configure the backend with:
+Create a private R2 bucket and an R2 API token scoped to that bucket with Object Read & Write permissions. Configure `STORAGE_ENDPOINT=https://<ACCOUNT_ID>.r2.cloudflarestorage.com`, `STORAGE_BUCKET`, `STORAGE_REGION=auto`, `STORAGE_ACCESS_KEY` and `STORAGE_SECRET_KEY`, or set `R2_ACCOUNT_ID` and leave the endpoint blank. Keep credentials server-side and the bucket private.
 
-- `STORAGE_PROVIDER=cloudflare_r2`
-- `STORAGE_ENDPOINT=https://<ACCOUNT_ID>.r2.cloudflarestorage.com`
-- `STORAGE_BUCKET=kenyaads-media`
-- `STORAGE_REGION=auto`
-- `STORAGE_ACCESS_KEY` and `STORAGE_SECRET_KEY` from the R2 token
+## Request and media generation lifecycle
 
-The API uses the S3-compatible endpoint through boto3. The helper in `api/app/storage.py` creates short-lived presigned PUT and GET URLs. Keep the bucket private and credentials server-side; never place R2 secrets in frontend variables or commit real credentials. Authorize ownership and validate upload type/size in the API before issuing a presigned URL. Configure CORS on the R2 bucket only for the required frontend origins and methods when browser-direct uploads are introduced.
-
-The storage helper is infrastructure plumbing; upload routes, ownership checks, lifecycle cleanup and production bucket policies must be added in the relevant feature phase.
-
-## Request and generation lifecycle
-
-1. The Vercel frontend sends an authenticated request to the FastAPI API.
-2. The API validates the request, writes the ad/job record to Neon and enqueues work.
-3. An external job coordinator/worker dispatches work to an available Kaggle notebook run. Notebook runs poll or receive a bounded batch of jobs; they must not attempt to keep a Kaggle session alive indefinitely.
-4. The notebook loads the selected model and adapter revisions, performs inference on the Kaggle GPU, and writes artifacts to private Cloudflare R2 storage.
-5. The notebook reports progress and completion to an authenticated backend callback or job-result endpoint.
-6. The API updates Neon; the frontend reads status through polling or SSE and receives short-lived media URLs from the API.
-
-Jobs must be idempotent, retryable and resumable where practical. If Kaggle capacity or quota is unavailable, jobs remain queued and the UI must communicate the delay honestly. Do not promise instant generation or continuous availability from Kaggle.
+Later asynchronous media phases will write ad/job records to Neon, enqueue work in managed Redis, and dispatch bounded jobs to an available Kaggle notebook through an external coordinator. The notebook writes artifacts to private R2 storage and reports completion to the API. Kaggle capacity and quota can delay work; never treat it as an always-on endpoint.
 
 ## GPU provider portability
 
-Define a provider interface independent of the model implementation. The initial Kaggle adapter and future GPU-provider adapters must implement the same job contract for health/capability checks, submit, status, cancel where supported, logs and artifact results.
-
-Keep model configuration separate from provider configuration. Record provider, GPU type when available, model ID/revision, adapter revision, dataset revision, code commit, parameters, metrics and artifact locations for every run. Switching GPU providers must not require changing the frontend or database schema.
-
-Model portability is not automatic: check runtime, VRAM, precision, dependency and license compatibility before loading a model on another GPU provider.
+Keep model configuration separate from GPU provider configuration. Provider adapters should expose a common job contract for health/capability checks, submit, status, cancellation where supported, logs and artifact results. Record provider, GPU type, model ID/revision, adapter revision, dataset revision, code commit, parameters, metrics and artifact locations. Model portability still requires runtime, VRAM, precision, dependency and license checks.
 
 ## Training lifecycle
 
@@ -66,7 +53,7 @@ Only user-consented, rights-cleared and admin-approved data may enter training d
 
 ## Local development (Windows 11)
 
-Docker is optional. Developers can run the Next.js and FastAPI applications directly on Windows and connect to hosted Neon, Redis and Cloudflare R2 using environment variables. No local GPU is required or used. Keep secrets in local environment files and hosting-provider secret stores; never commit them.
+Docker is optional. Developers can run Next.js and FastAPI directly on Windows and connect to hosted Neon, Redis and Cloudflare R2. No local GPU is required or used. Keep secrets in local environment files and hosting-provider secret stores; never commit them.
 
 ## Security and reliability baseline
 
