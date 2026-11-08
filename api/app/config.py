@@ -14,6 +14,13 @@ class Settings(BaseSettings):
     jwt_secret: str = "development-only-secret-change-before-deploy"
     jwt_expire_minutes: int = 60
 
+    # Optional OpenAI-compatible endpoint for a self-hosted model (e.g. vLLM).
+    # Leave blank to use the transparent, deterministic starter-script provider.
+    script_llm_base_url: str | None = None
+    script_llm_model: str = "Qwen/Qwen2.5-3B-Instruct"
+    script_llm_api_key: str | None = None
+    script_llm_timeout_seconds: int = 55
+
     # Cloudflare R2 uses its account-specific S3 API endpoint, never the public r2.dev URL.
     storage_provider: str = "cloudflare_r2"
     r2_account_id: str | None = None
