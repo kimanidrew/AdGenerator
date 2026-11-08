@@ -31,7 +31,7 @@ async function readApiResponse(response: Response): Promise<any> {
   const body = await response.text();
   if (!body) return {};
   try {
-    return JSON.parse(body) as ApiResponse;
+    return JSON.parse(body);
   } catch {
     return {
       detail: body.trim() || `Server returned HTTP ${response.status}.`,
