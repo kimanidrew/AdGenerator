@@ -108,7 +108,7 @@ export default function CreatePage() {
       const response = await fetch(`${apiBase}/api/storyboards/generate`, {
         method: "POST", headers, body: JSON.stringify({ script }),
       });
-      const data = await response.json();
+      const data = await readApiResponse(response);
       if (!response.ok) throw new Error(typeof data.detail === "string" ? data.detail : "Could not start storyboard generation.");
       const jobId = data.job_id as string;
       for (let attempt = 0; attempt < 180; attempt += 1) {
