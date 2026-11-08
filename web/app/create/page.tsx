@@ -27,9 +27,7 @@ type Script = {
 const inputClass = "mt-2 w-full rounded-xl border border-white/10 bg-slate-950/80 px-4 py-3 text-sm text-white outline-none transition focus:border-emerald-400";
 const labelClass = "block text-sm font-semibold text-slate-300";
 
-type ApiResponse = { detail?: string; [key: string]: unknown };
-
-async function readApiResponse(response: Response): Promise<ApiResponse> {
+async function readApiResponse(response: Response): Promise<any> {
   const body = await response.text();
   if (!body) return {};
   try {
