@@ -27,6 +27,20 @@ type Script = {
 const inputClass = "mt-2 w-full rounded-xl border border-white/10 bg-slate-950/80 px-4 py-3 text-sm text-white outline-none transition focus:border-emerald-400";
 const labelClass = "block text-sm font-semibold text-slate-300";
 
+type ApiResponse = { detail?: string; [key: string]: unknown };
+
+async function readApiResponse(response: Response): Promise<ApiResponse> {
+  const body = await response.text();
+  if (!body) return {};
+  try {
+    return JSON.parse(body) as ApiResponse;
+  } catch {
+    return {
+      detail: body.trim() || `Server returned HTTP ${response.status}.`,
+    };
+  }
+}
+
 export default function CreatePage() {
   const [brief, setBrief] = useState("");
   const [productName, setProductName] = useState("");
@@ -72,7 +86,7 @@ export default function CreatePage() {
           language, duration_seconds: Number(duration), platform, tone,
         }),
       });
-      const data = await response.json();
+      const data = await readApiResponse(response);
       if (!response.ok) throw new Error(typeof data.detail === "string" ? data.detail : "Could not generate your script.");
       setScript(data.script);
       setMode(data.generation_mode);
@@ -104,7 +118,7 @@ export default function CreatePage() {
         const statusResponse = await fetch(`${apiBase}/api/storyboards/jobs/${jobId}`, {
           headers: { Authorization: `Bearer ${token}` },
         });
-        const statusData = await statusResponse.json();
+        const statusData = await readApiResponse(statusResponse);
         if (!statusResponse.ok) throw new Error(typeof statusData.detail === "string" ? statusData.detail : "Could not check storyboard progress.");
         if (statusData.status === "completed") {
           setStoryboard(statusData.images || []);
