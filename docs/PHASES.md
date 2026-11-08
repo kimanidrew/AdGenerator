@@ -1,6 +1,6 @@
 # Delivery phases
-- [x] Phase 1 — foundation, authentication, consent capture, PostgreSQL, Redis/Celery and MinIO scaffolding.
-- [ ] Phase 2 — self-hosted script generation and editable validated scene JSON.
+- [x] Phase 1 — foundation, authentication, consent capture, PostgreSQL, Redis/Celery and deployment scaffolding.
+- [x] Phase 2 — authenticated script generation endpoint, validated scene JSON, English/Kiswahili/Sheng options and editable script studio.
 - [ ] Phase 3 — storyboard generation.
 - [ ] Phase 4 — voiceover, FFmpeg assembly and end-to-end MVP.
 - [ ] Phase 5 — queue progress, SSE, history, scene regeneration and feedback.
