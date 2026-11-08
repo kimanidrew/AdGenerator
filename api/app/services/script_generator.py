@@ -173,6 +173,7 @@ def _self_hosted_script(request: ScriptRequest) -> GeneratedScript:
     body = json.dumps({
         "model": settings.script_llm_model,
         "temperature": 0.7,
+        "max_tokens": 2500,
         "response_format": {"type": "json_object"},
         "messages": [
             {"role": "system", "content": system_prompt},
@@ -198,5 +199,18 @@ def _self_hosted_script(request: ScriptRequest) -> GeneratedScript:
 
 def generate_script(request: ScriptRequest) -> tuple[GeneratedScript, str]:
     if settings.script_llm_base_url:
-        return _self_hosted_script(request), "self_hosted_llm"
-    return _starter_script(request), "starter_template"
+        script = _self_hosted_script(request)
+        mode = "self_hosted_llm"
+    else:
+        script = _starter_script(request)
+        mode = "starter_template"
+
+    # Keep the output aligned with the user's selected settings, even if a model drifts.
+    if (
+        script.duration_seconds != request.duration_seconds
+        or script.language != request.language
+        or script.platform != request.platform
+        or script.tone != request.tone
+    ):
+        raise RuntimeError("The generated script did not preserve your selected language, duration, platform and tone. Please try again.")
+    return script, mode
